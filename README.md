@@ -59,3 +59,17 @@ From the project root:
 python app.py
 ```
 Open [http://127.0.0.1:5000](http://127.0.0.1:5000) to view the application.
+
+## Deployment on Render
+
+1. Log into [Render Dashboard](https://dashboard.render.com).
+2. Click **New +** and select **Web Service** (or use **Blueprint** pointing to `render.yaml`).
+3. Connect your GitHub repository: `aryanTmall/campus_manager`.
+4. Configure the service settings:
+   - **Environment**: `Python`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `gunicorn app:app`
+5. Under **Environment Variables**, add:
+   - `SUPABASE_URL`: Your Supabase project URL
+   - `SUPABASE_PUBLISHABLE_KEY`: Your Supabase public/anon API key
+6. Click **Deploy Web Service**. Render will automatically build, provision, and provide you with a public HTTPS URL (e.g. `https://campus-manager-xxx.onrender.com`).

@@ -23,7 +23,10 @@ app = Flask(__name__)
 supabase_url = os.environ.get("SUPABASE_URL")
 supabase_key = os.environ.get("SUPABASE_PUBLISHABLE_KEY")
 if not supabase_url or not supabase_key:
-    raise ValueError(f"Missing Supabase credentials in .env file at {env_path}")
+    raise ValueError(
+        "Missing SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY environment variables. "
+        "Set them in your environment or in backend/.env"
+    )
 
 supabase: Client = create_client(supabase_url, supabase_key)
 
@@ -194,4 +197,5 @@ def event_registrations(event_id):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
