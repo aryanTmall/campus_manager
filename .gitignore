@@ -1,0 +1,29 @@
+# Virtual environment
+venv/
+.venv/
+env/
+backend/venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*/__pycache__/
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# IDE / Editor settings / Local symlinks
+.vscode/
+.idea/
+.claude/
+backend/.claude/
+
+# OS metadata
+.DS_Store
+Thumbs.db
