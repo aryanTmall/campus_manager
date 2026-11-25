@@ -60,6 +60,19 @@ python app.py
 ```
 Open [http://127.0.0.1:5000](http://127.0.0.1:5000) to view the application.
 
+## Deployment on Vercel
+
+This repository is ready for a single Vercel project: the Vite frontend is
+deployed as static output and the Flask API runs as a Python Serverless
+Function at `/api/*`.
+
+1. Import the repository into Vercel using the repository root as the project root.
+2. Add `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in **Project Settings → Environment Variables** (Production and Preview).
+3. Deploy. Vercel uses `vercel.json` to build `frontend/` and route `/api/*` to `api/index.py`.
+
+The deployed browser app calls its own origin for the API automatically; do not
+set `VITE_API_URL` in Vercel unless you intentionally use a separate API host.
+
 ## Deployment on Render
 
 1. Log into [Render Dashboard](https://dashboard.render.com).

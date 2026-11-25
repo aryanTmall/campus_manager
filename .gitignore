@@ -24,6 +24,10 @@ backend/.env.*
 .claude/
 backend/.claude/
 
+# Generated frontend dependencies and build output
+frontend/node_modules/
+frontend/dist/
+
 # OS metadata
 .DS_Store
 Thumbs.db

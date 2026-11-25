@@ -9,7 +9,7 @@ from pathlib import Path
 from uuid import UUID
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from httpx import HTTPError
 from postgrest import APIError
 from supabase import Client, create_client
@@ -18,7 +18,14 @@ from supabase import Client, create_client
 env_path = Path(__file__).resolve().parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
-app = Flask(__name__)
+frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+app = Flask(
+    __name__,
+    # Vite places fingerprinted JavaScript and CSS below dist/assets. Keeping
+    # that URL stable lets Flask serve the whole application from one origin.
+    static_folder=str(frontend_dist / "assets"),
+    static_url_path="/assets",
+)
 
 supabase_url = os.environ.get("SUPABASE_URL")
 supabase_key = os.environ.get("SUPABASE_PUBLISHABLE_KEY")
@@ -75,15 +82,29 @@ def get_event(event_id):
 
 @app.get("/")
 def index():
+    """Serve the compiled event portal at the same address as the API."""
+    if (frontend_dist / "index.html").exists():
+        return send_from_directory(frontend_dist, "index.html")
     try:
         response = supabase.table("events").select("id,organizer_id,title,capacity,status").order("title").execute()
-        return jsonify({
-            "service": "event-registration-api",
-            "status": "ok",
-            "events": response.data or []
-        })
-    except (APIError, HTTPError) as exc:
-        return database_error(exc)
+        events = response.data or []
+    except Exception:
+        events = []
+    return jsonify({
+        "service": "event-registration-api",
+        "status": "ok",
+        "events": events
+    })
+
+
+@app.get("/<path:path>")
+def frontend_route(path):
+    """Return the frontend for client-side routes without masking API errors."""
+    if path.startswith("api/"):
+        return error("Endpoint not found.", 404)
+    if (frontend_dist / "index.html").exists():
+        return send_from_directory(frontend_dist, "index.html")
+    return error("Resource not found.", 404)
 
 
 @app.get("/api/users")
@@ -212,6 +233,7 @@ def event_registrations(event_id):
         return jsonify({"data": response.data or []})
     except (APIError, HTTPError) as exc:
         return database_error(exc)
+
 
 
 if __name__ == "__main__":
