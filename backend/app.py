@@ -75,147 +75,15 @@ def get_event(event_id):
 
 @app.get("/")
 def index():
-    # Fetch events safely
-    events = []
-    events_error = None
     try:
-        events_resp = supabase.table("events").select("id,organizer_id,title,capacity,status").order("title").execute()
-        events = events_resp.data or []
-    except Exception as exc:
-        events_error = str(exc)
-
-    # Fetch users safely
-    users = []
-    users_error = None
-    try:
-        users_resp = supabase.table("users").select("id,email,role").execute()
-        users = users_resp.data or []
-    except Exception as exc:
-        users_error = str(exc)
-
-    # Return JSON if client expects json or requests it explicitly
-    if request.headers.get("Accept") == "application/json" or request.args.get("format") == "json":
+        response = supabase.table("events").select("id,organizer_id,title,capacity,status").order("title").execute()
         return jsonify({
             "service": "event-registration-api",
             "status": "ok",
-            "database": {
-                "events": events if not events_error else {"error": events_error},
-                "users": users if not users_error else {"error": users_error}
-            }
+            "events": response.data or []
         })
-
-    # Render HTML Dashboard for browser visits
-    events_html = ""
-    if events:
-        events_html = "".join([
-            f'<div class="card"><h3>{e.get("title", "Untitled")}</h3>'
-            f'<p><strong>Status:</strong> <span class="badge">{e.get("status", "N/A")}</span> &bull; '
-            f'<strong>Capacity:</strong> {e.get("capacity", "Unlimited")}</p>'
-            f'<small>Event ID: <code>{e.get("id")}</code></small></div>'
-            for e in events
-        ])
-    elif events_error:
-        events_html = (
-            '<div class="alert warning">'
-            '<strong>Events table access restricted:</strong> Supabase returned permission denied on public.events.<br>'
-            'Run the SQL commands from <code>backend/setup_database_permissions.sql</code> in your '
-            '<a href="https://supabase.com/dashboard" target="_blank">Supabase SQL Editor</a> to enable public access.'
-            '</div>'
-        )
-    else:
-        events_html = '<p class="empty-state">No events found in database.</p>'
-
-    users_html = ""
-    if users:
-        users_html = "".join([
-            f'<li class="user-item"><div><strong>{u.get("email", "No email")}</strong> '
-            f'<span class="badge">{u.get("role", "user")}</span></div>'
-            f'<small><code>{u.get("id")}</code></small></li>'
-            for u in users
-        ])
-    elif users_error:
-        users_html = f'<p class="error-text">Error loading users: {users_error}</p>'
-    else:
-        users_html = '<p class="empty-state">No users found.</p>'
-
-    html = f'''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Campus Manager - Event Registration API</title>
-    <style>
-        :root {{
-            --bg: #0f172a;
-            --surface: #1e293b;
-            --border: #334155;
-            --text: #f8fafc;
-            --text-muted: #94a3b8;
-            --primary: #38bdf8;
-            --accent: #22c55e;
-            --warning: #f59e0b;
-        }}
-        * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-        body {{
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            line-height: 1.6;
-            padding: 2rem 1rem;
-        }}
-        .container {{ max-width: 900px; margin: 0 auto; }}
-        header {{ margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }}
-        h1 {{ font-size: 1.8rem; font-weight: 700; color: #fff; }}
-        .status-pill {{ background: rgba(34, 197, 94, 0.15); color: var(--accent); padding: 0.3rem 0.8rem; border-radius: 9999px; font-size: 0.85rem; font-weight: 600; border: 1px solid rgba(34, 197, 94, 0.3); }}
-        section {{ background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; }}
-        h2 {{ font-size: 1.25rem; margin-bottom: 1rem; color: var(--primary); }}
-        .card {{ background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem; }}
-        .badge {{ background: #334155; color: #e2e8f0; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; text-transform: uppercase; font-weight: 600; }}
-        ul {{ list-style: none; }}
-        .user-item {{ padding: 0.6rem 0; border-bottom: 1px solid rgba(51, 65, 85, 0.5); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }}
-        .user-item:last-child {{ border-bottom: none; }}
-        code {{ font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; color: #cbd5e1; background: rgba(0,0,0,0.3); padding: 0.15rem 0.4rem; border-radius: 4px; }}
-        .alert {{ padding: 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; }}
-        .alert.warning {{ background: rgba(245, 158, 11, 0.15); border: 1px solid var(--warning); color: #fde68a; }}
-        .alert a {{ color: var(--primary); text-decoration: underline; }}
-        .api-links {{ display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.5rem; }}
-        .btn {{ display: inline-block; background: #334155; color: #fff; text-decoration: none; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.85rem; font-weight: 500; transition: background 0.2s; }}
-        .btn:hover {{ background: #475569; }}
-        .empty-state {{ color: var(--text-muted); font-style: italic; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header>
-            <div>
-                <h1>Campus Manager</h1>
-                <p style="color: var(--text-muted); font-size: 0.9rem;">Event Registration Backend API</p>
-            </div>
-            <span class="status-pill">&bull; Service Online</span>
-        </header>
-
-        <section>
-            <h2>Database Events</h2>
-            {events_html}
-        </section>
-
-        <section>
-            <h2>Database Users ({len(users)})</h2>
-            <ul>{users_html}</ul>
-        </section>
-
-        <section>
-            <h2>API Endpoints</h2>
-            <div class="api-links">
-                <a class="btn" href="/api/events" target="_blank">GET /api/events</a>
-                <a class="btn" href="/api/users" target="_blank">GET /api/users</a>
-                <a class="btn" href="/?format=json" target="_blank">GET /?format=json</a>
-            </div>
-        </section>
-    </div>
-</body>
-</html>'''
-    return html
+    except (APIError, HTTPError) as exc:
+        return database_error(exc)
 
 
 @app.get("/api/users")
